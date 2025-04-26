@@ -1,0 +1,92 @@
+- name: Ensure staging instances are running and inventory is updated
+  hosts: localhost
+  gather_facts: no
+  vars:
+    instance_name: Staging_k8s           # Use your instance tag/name
+    region: us-east-1
+    group: ec2_staging
+
+  tasks:
+    - name: Gather facts to check if the staging instance already exists
+      ec2_instance_info:
+        region: "{{ region }}"
+        filters:
+          instance-state-name: running
+          tag:Name: "{{ instance_name }}"
+      register: ec2_exists
+
+    - name: Fail if no running instances are found
+      fail:
+        msg: "No running staging instances found. Please provision the staging environment."
+      when: ec2_exists.instances | length == 0
+
+    - name: Update inventory with dynamic public IPs
+      add_host:
+        name: "{{ item.public_ip_address }}"
+        groups: "{{ group }}"
+      loop: "{{ ec2_exists.instances }}"
+      when: item.public_ip_address is defined
+
+- name: Deploy Application on Staging Instance
+  hosts: "{{ group }}"
+  vars:
+    ansible_ssh_private_key_file: assignment_2_app_key.pem   # your key filename
+    remote_ec2_user: ubuntu
+    group: ec2_staging
+  vars_files:
+    - vault.yml
+  remote_user: "{{ remote_ec2_user }}"
+  become: yes
+  become_method: sudo
+
+  tasks:
+    - name: Delete existing kubectl secret for the docker registry (ignore if missing)
+      command: kubectl delete secret docker-hub-secret
+      ignore_errors: yes
+
+    - name: Create kubectl secret for the docker registry
+      command: kubectl create secret docker-registry docker-hub-secret --docker-username={{ vault_docker_hub_username }} --docker-password={{ vault_docker_hub_token }}
+
+    - name: Copy k8s-configmap.yaml file
+      copy:
+        src: ../k8s-configmap.yaml
+        dest: /home/ubuntu/k8s-configmap.yaml
+        mode: '0644'
+
+    - name: Apply k8s-configmap.yaml file
+      kubernetes.core.k8s:
+        state: present
+        namespace: default
+        src: /home/ubuntu/k8s-configmap.yaml
+
+    - name: Copy k8s-deployment.yaml file
+      copy:
+        src: ../k8s-deployment.yaml
+        dest: /home/ubuntu/k8s-deployment.yaml
+        mode: '0644'
+
+    - name: Apply k8s-deployment.yaml file
+      kubernetes.core.k8s:
+        state: present
+        namespace: default
+        src: /home/ubuntu/k8s-deployment.yaml
+
+    - name: Set default tag
+      set_fact:
+        tag: latest
+      when: tag is not defined
+
+    - name: Rolling update (update deployment image to specific tag if needed)
+      shell: kubectl set image deployment/assignment-2-app assignment-2-app=rabiaqamar/assignment-2-app:{{ tag }} --record
+
+    - name: Copy k8s-service.yaml file
+      copy:
+        src: ../k8s-service.yaml
+        dest: /home/ubuntu/k8s-service.yaml
+        mode: '0644'
+
+    - name: Apply k8s-service.yaml file
+      kubernetes.core.k8s:
+        state: present
+        namespace: default
+        src: /home/ubuntu/k8s-service.yaml

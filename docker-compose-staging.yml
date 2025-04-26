@@ -1,0 +1,15 @@
+services:
+  assignment-2-app:
+    image: rabiaqamar/assignment-2-app:latest
+    expose:
+      - "80"    # exposed port for Nginx
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - assignment-2-app
+
