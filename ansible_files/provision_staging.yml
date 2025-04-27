@@ -3,16 +3,16 @@
   connection: local
   vars:
     instance_name: Staging
-    key_name: assignment_2_app_key
-    instance_type: t2.medium          # <-- CHANGED HERE
+    key_name: DevOpsKey                       # <-- USE YOUR KEY PAIR NAME!
+    instance_type: t2.medium                  # <-- CHANGED HERE
     security_group: assignment_2_app_sg
     image_id: ami-0866a3c8686eaeeba
     region: us-east-1
-    ansible_ssh_private_key_file: ../assignment_2_app_key.pem
+    ansible_ssh_private_key_file: DevOpsKey.pem # <-- USE YOUR .pem FILENAME
 
   tasks:
-    - name: Launch T2 medium instance on EC2      # <-- You can update the task name if you want
-      ec2_instance:
+    - name: Launch T2 medium instance on EC2
+      amazon.aws.ec2_instance:                # <-- Use 'amazon.aws.ec2_instance' module
         name: "{{ instance_name }}"
         key_name: "{{ key_name }}"
         instance_type: "{{ instance_type }}"
@@ -38,7 +38,7 @@
 - name: Configure Staging instance
   hosts: ec2_staging
   vars:
-    ansible_ssh_private_key_file: ../assignment_2_app_key.pem
+    ansible_ssh_private_key_file: DevOpsKey.pem      # <-- USE YOUR .pem FILENAME
     remote_ec2_user: ubuntu
   remote_user: "{{ remote_ec2_user }}"
   become: yes

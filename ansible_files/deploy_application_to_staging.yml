@@ -29,7 +29,7 @@
 
 - name: Deploy Application on Staging Instance
   vars:
-    ansible_ssh_private_key_file: ../assignment_2_app_key.pem    # <--- changed here!
+    ansible_ssh_private_key_file: DevOpsKey.pem    # <--- changed here!
     remote_ec2_user: ubuntu
     group: ec2_staging
   vars_files:
@@ -65,15 +65,9 @@
         dest: /home/ubuntu/docker-compose-staging.yml
         mode: '0644'
 
-    - name: Copy nginx config file
-      copy:
-        src: ../nginx/
-        dest: /home/ubuntu/nginx/
-        mode: '0644'
-
     - name: Pull latest assignment-2-app image
       docker_image:
-        name: rabiaqamar/flask-running-app
+        name: rabiaqamar/assignment-2-app
         tag: latest
         source: pull
 
