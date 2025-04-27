@@ -8,7 +8,7 @@ import logging
 # Define the application version and fetch the hostname from environment variables
 APP_VERSION = "1.0.1"
 HOSTNAME = os.environ.get("HOSTNAME", "unknown")
-#what more
+#and what more
 
 # Set up logging with a custom format
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
